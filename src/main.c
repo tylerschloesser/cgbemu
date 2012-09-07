@@ -3,6 +3,7 @@
 #include "cpu.h"
 #include "graphics.h"
 #include "tools.h"
+
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
@@ -18,8 +19,8 @@ int main(int argc, char** argv) {
 		fprintf(stdout, "debug mode is disabled\n");
 	}
 
-	char game_filepath[] = "roms\\pokemon_yellow.gbc";
-	char bios_filepath[] = "gbc_bios.bin";
+	char game_filepath[] = "..\\resources\\roms\\pokemon_yellow.gbc";
+	char bios_filepath[] = "..\\resources\\bios\\gbc_bios.bin";
 	
 	setup_gui();
 

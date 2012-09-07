@@ -1,1 +1,4 @@
-Hello
+Requires SDL
+
+Installing SDL under MinGW
+http://www.netadelica.com/coding/sdl/install.html
