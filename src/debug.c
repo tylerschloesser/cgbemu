@@ -1,6 +1,6 @@
 #include "debug.h"
 
-void setup_debug_console()
+void enable_debug_console()
 {
 #ifdef _WIN32
 	int hConHandle;
@@ -39,9 +39,9 @@ void setup_debug_console()
     setvbuf( stderr, NULL, _IONBF, 0 );
 
 #else
-	printf("setup_debug_console() only implemented on windows\n");
+	printf("enable_debug_console() only implemented on windows\n");
 #endif
-	return 0;
+	return;
 }
 
 void display_cpu_values() 

@@ -1,8 +1,8 @@
 #ifndef MEMORY_H_INCLUDED
 #define MEMORY_H_INCLUDED
 
-#include "globals.h"
-#include "debug.h"
+#include "../globals.h"
+#include "../debug.h"
 //temp
 #include "cpu.h"
 enum

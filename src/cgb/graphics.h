@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "globals.h"
+#include "../globals.h"
 #include <SDL/SDL.h>
 #include <SDL/SDL_thread.h>
 #include "memory.h"

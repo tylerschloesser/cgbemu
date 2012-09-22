@@ -1,5 +1,7 @@
 #include "memory.h"
 
+#include "joypad.h"
+
 extern bool show_opcodes;
 
 void MBC_write(u16 location, u8 data)
@@ -168,6 +170,19 @@ void MBC_write(u16 location, u8 data)
             int offset = 0xFF00;
 			
 			switch(location - offset) {
+                case P1:
+                {
+                    data &= 0x30;
+                    //assert(data != 0);
+                    
+                    hardware_registers[P1] = data;
+                    if((data & 0x10) == 0) {
+                        gb_select_direction_keys();
+                    } else { // data & 0x20
+                        gb_select_button_keys();
+                    }
+                    break;
+                }
 				case HDMA5:
 				{
 					u32 dma_source, dma_destination;

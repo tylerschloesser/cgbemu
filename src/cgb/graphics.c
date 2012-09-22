@@ -1,5 +1,5 @@
 #include "graphics.h"
-//teMP
+#include "gameboy.h"
 #include "cpu.h"
 
 
@@ -12,7 +12,7 @@
 #define SCREEN_HEIGHT 144
 
 
-SDL_Surface *surface;
+//SDL_Surface *surface;
 
 u8 screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH][3];
 
@@ -67,6 +67,7 @@ void update_screen()
 		}
 	}
 	*/
+
 	SDL_UpdateRect(surface, 0, 0, 0, 0); 
 }
 

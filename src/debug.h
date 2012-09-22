@@ -2,10 +2,12 @@
 #define DEBUG_H_INCLUDED
 
 #include "globals.h"
-#include "memory.h"
-#include "cpu.h"
+#include "cgb/memory.h"
+#include "cgb/cpu.h"
 
 void display_cpu_values() ;
+
+void enable_debug_console();
 
 extern char opcode[][16];
 extern char opcodeCB[][16];
