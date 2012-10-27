@@ -1939,8 +1939,13 @@ case 0xE7: //RST 20H
 	PC.B.L = 0x20;
 	return 16;
 case 0xE8: //ADD SP, r8
-	TR.W = SP.W + MBC_read(PC.W++);
-	AF.B.L = (((HL.W ^ BC.W ^ TR.W) & 0x1000) ? HF : 0) | (TR.W < BC.W ? CF : 0);
+    offset = MBC_read(PC.W++);
+	TR.W = SP.W + offset;
+    if(offset >= 0) {
+        AF.B.L = (((SP.W ^ TR.W ^ offset) & 0x1000) ? HF : 0) | (SP.W > TR.W ? CF : 0);
+    } else {
+        AF.B.L = (((SP.W ^ TR.W ^ offset) & 0x1000) ? HF : 0) | (SP.W < TR.W ? CF : 0);
+    }	
 	SP.W = TR.W;
 	return 16;
 case 0xE9: //JP (HL)
@@ -2006,9 +2011,14 @@ case 0xF7: //RST 30H
 	PC.B.L = 0x30;
 	return 16;
 case 0xF8: //LD HL, SP + r8
-	printf("work on this one\n");
-	getchar();
-	exit(1);
+	offset = MBC_read(PC.W++);
+    TR.W = SP.W + offset;
+    if(offset >= 0) {
+        AF.B.L = (((SP.W ^ TR.W ^ offset) & 0x1000 ? HF : 0) | (SP.W > TR.W ? CF : 0));
+    } else {
+        AF.B.L = (((SP.W ^ TR.W ^ offset) & 0x1000 ? HF : 0) | (SP.W < TR.W ? CF : 0));
+    }
+    HL.W = TR.W;
 case 0xF9: //LD SP, HL
 	SP.W = HL.W;
 	return 8;

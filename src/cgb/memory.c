@@ -172,13 +172,15 @@ void MBC_write(u16 location, u8 data)
 			switch(location - offset) {
                 case P1:
                 {
+                    //joypad register
                     data &= 0x30;
-                    //assert(data != 0);
                     
-                    hardware_registers[P1] = data;
-                    if((data & 0x10) == 0) {
+                    if((data & 0x30) == 0) {
+                        // ? both button and dir keys selected?
+                        hardware_registers[P1] |= (data & 0x0F);
+                    } else if((data & 0x10) == 0) {
                         gb_select_direction_keys();
-                    } else { // data & 0x20
+                    } else if((data & 0x20) == 0) {
                         gb_select_button_keys();
                     }
                     break;
@@ -467,6 +469,16 @@ u8 MBC_read(u16 location)
                 printf("MBC: %02x read from oam_ram at %02x\n",
                        gameboy_oam[location - offset], location - offset);
             #endif
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
             return gameboy_oam[location - offset];
 
@@ -485,9 +497,20 @@ u8 MBC_read(u16 location)
             int offset = 0xFF00;
 
 			switch(location - offset) {
-				case P1: //joypad
+				case P1:
+                {   //joypad
 					//temp. set 4LSB to 1, indicating that no buttons are pressed
-					return (hardware_registers[P1] | 0xFF);
+                    //dprintf("joypad: %X\n", hardware_registers[P1]);
+					//return (hardware_registers[P1] | 0xFF);
+                    u8 joypad_state = get_joypad_state();
+                    /*
+                    if((joypad_state & 0x0F) != 0x0F)
+                        dprintf("reading joypad state: %X\n", joypad_state);
+                    */
+                    //joypad_state |= (hardware_registers[P1] & 0xF0);
+                    
+                    return joypad_state;
+                }
 			}
 			
             #ifdef DEBUG_MEMORY

@@ -79,7 +79,7 @@ void gameboy_power_on() {
 
 static void key_pressed(SDLKey key) {
     int gb_key = -1;
-    
+
     switch(key) {
     case SDLK_UP:
         gb_key = JOYPAD_UP;

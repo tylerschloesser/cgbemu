@@ -1,6 +1,8 @@
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
 
+#include <stdbool.h>
+
 #include "globals.h"
 #include "cgb/memory.h"
 #include "cgb/cpu.h"

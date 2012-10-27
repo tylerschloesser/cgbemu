@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
 	}
 
 	char game_filepath[] = "..\\resources\\roms\\pokemon_yellow.gbc";
+    //char game_filepath[] = "..\\resources\\roms\\pokemon_red.gb";
 	char bios_filepath[] = "..\\resources\\bios\\gbc_bios.bin";
 	
 	dprintf("Opening %s...", bios_filepath);

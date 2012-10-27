@@ -11,6 +11,8 @@ u32 VBLANK_CYCLES =  69905;
 bool cgb_mode = true;
 extern bool show_opcodes;
 
+struct timeval time_end, time_start;
+
 /* 
  * Returns time difference between "timee" and "times" in micro-seconds (usec)
  */
@@ -63,7 +65,9 @@ void cpu_interrupt(int interrupt_type) {
         case SERIAL_INTERRUPT:
             break;
         case JOYPAD_INTERRUPT:
-            hardware_registers[IF] |= 0x10;
+            //hardware_registers[IF] |= 0x10;
+            dprintf("joypad interrupt\n");
+			hardware_registers[IF] |= 0x8;
             break;
     }
 }
@@ -156,7 +160,7 @@ void cpu_run() {
 					
 				} else if(hardware_registers[LY] < 144) {
 					// render current scanline
-					//render_scanline();
+					render_scanline();
 				}
 			}
 		}
@@ -200,20 +204,22 @@ void cpu_run() {
 			cycles = 0;
 			
 			// testing
-			//update_screen();
+			update_screen();
 			
 			//this works
 			
+            /*
 			render_background_old();
 			render_sprites();
-
-			/*
+            */
+            
+			
 			gettimeofday(&time_end, (void*)NULL);
 			int sleep_usec = (1000000 - comp_time(time_start, time_end) - 1)/60;
-			//usleep(sleep_usec);
+			usleep(sleep_usec);
 			
 			gettimeofday(&time_start, (void*)NULL);
-			*/
+			
 		}
 		
 		
@@ -250,6 +256,8 @@ void cpu_run() {
 				cycles += 16;
 			} else if(interrupt & 0x8) {
 				//Joypad Interrupt
+				dprintf("joypad interrupt!\n");
+				dprintf("hardware_registers[P1]=%X\n", hardware_registers[P1]);
 				IME = 0;
 				hardware_registers[IF] &= ~0x8;
 				MBC_write(--SP.W, PC.B.H);
@@ -265,6 +273,12 @@ void cpu_run() {
 
 int cpu_execute() {
 
+    if(show_opcodes) {
+        display_cpu_values();
+    }
+
+    s8 offset;
+    
 	// load the next intruction
 	IR.W = MBC_read(PC.W++);	
 	
@@ -272,6 +286,8 @@ int cpu_execute() {
 	switch(IR.W) {
 		#include "opcodes.h"
 	}
+    
+    
 	
 	// program will not reach this point
 	return -1;
@@ -475,6 +491,8 @@ void initialize_cpu() {
 
 int execute()
 {	
+    s8 offset;
+    
 	// load the next intruction
 	IR.W = MBC_read(PC.W++);	
 	

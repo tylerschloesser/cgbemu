@@ -1,5 +1,7 @@
 #include "debug.h"
 
+bool show_opcodes = false;
+
 void enable_debug_console()
 {
 #ifdef _WIN32
