@@ -26,14 +26,6 @@ void tprintf( const char* format, ... )
 	fprintf(stderr, "\n");
 }
 
-void dprintf( const char* format, ... )
-{
-	va_list args;
-	va_start(args, format);
-	vfprintf(stdout, format, args);
-	va_end(args);
-}
-
 //input: size in bytes
 //output: string with size in B, KB, or MB
 char size_as_string[32];

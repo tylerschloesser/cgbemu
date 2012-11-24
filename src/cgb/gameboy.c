@@ -1,9 +1,36 @@
 #include "gameboy.h"
 #include "cpu.h"
 #include "joypad.h"
+#include "../tools.h"
+
+#include <SDL/SDL.h>
+#include <SDL/SDL_thread.h>
+
+SDL_Thread *screen_thread;
+SDL_Surface *surface;
 
 static void key_pressed(SDLKey key);
 static void key_unpressed(SDLKey key);
+
+void gameboy_load_cartridge(char* cartridge_filepath) {
+	dprintf("Opening %s...", cartridge_filepath);
+	int bytes_read = binary_read_file(cartridge_filepath, cartridge_rom, CARTRIDGE_ROM_SIZE);
+	if(bytes_read == 0) {
+		fprintf(stderr, "Failed (%s)\n", get_last_error());
+		fatal_error();
+	}
+	dprintf("Done (%s)\n", size_to_string(bytes_read));
+}
+
+void gameboy_load_bios(char *bios_filepath) {
+	dprintf("Opening %s...", bios_filepath);
+    int bytes_read = binary_read_file(bios_filepath, bios, BIOS_SIZE);
+	if(bytes_read == 0) {
+		fprintf(stderr, "Failed (%s)\n", get_last_error());
+		fatal_error();
+	}
+    dprintf("Done (%s)\n", size_to_string(bytes_read));
+}
 
 static int gameboy_screen(void *param) {
 

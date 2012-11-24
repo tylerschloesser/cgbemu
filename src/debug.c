@@ -46,9 +46,17 @@ void enable_debug_console()
 	return;
 }
 
+void dprintf( const char* format, ... )
+{
+	va_list args;
+	va_start(args, format);
+	vfprintf(stdout, format, args);
+	va_end(args);
+}
+
 void display_cpu_values() 
 {
-	printf("PC:%04X AF:%04X BC:%04X DE:%04X HL:%04X SP:%04X IE:%01X  IME:%01X\n",PC.W, AF.W, BC.W, DE.W, HL.W, SP.W, interrupt_enable, IME);
+	printf("PC:%04X IR:%02X AF:%04X BC:%04X DE:%04X HL:%04X SP:%04X IE:%01X  IME:%01X\n",PC.W, IR.W, AF.W, BC.W, DE.W, HL.W, SP.W, interrupt_enable, IME);
 }
 
 char opcode[][16] = {

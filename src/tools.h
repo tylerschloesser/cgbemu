@@ -9,7 +9,6 @@ extern unsigned int last_error;
 extern bool debug_mode;
 
 void tprintf( const char* format, ... );
-//void dprintf( const char* format, ... )
 unsigned int binary_read_file( char* filepath, u8* dest, int max_size );
 void fatal_error();
 char *get_last_error();

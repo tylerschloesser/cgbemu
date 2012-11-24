@@ -7,9 +7,14 @@
 #include "cgb/memory.h"
 #include "cgb/cpu.h"
 
+#define DEBUG_MBC_READ 0
+#define DEBUG_MBC_WRITE 1
+
 void display_cpu_values() ;
 
 void enable_debug_console();
+
+void dprintf( const char* format, ... );
 
 extern char opcode[][16];
 extern char opcodeCB[][16];

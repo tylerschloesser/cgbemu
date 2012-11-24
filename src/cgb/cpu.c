@@ -5,11 +5,12 @@
 z80reg PC, SP, BC, DE, HL, AF, IR, TR;
 
 u32 DEFAULT_CLOCK_SPEED = 4194304;
-//u32 VBLANK_CYCLES =  69905; //speed MHZ / 60 fps
-u32 VBLANK_CYCLES =  69905;
+u32 VBLANK_CYCLES =  69905; //speed MHZ / 60 fps
 
 bool cgb_mode = true;
 extern bool show_opcodes;
+
+bool waiting_for_interrupt = false;
 
 struct timeval time_end, time_start;
 
@@ -55,19 +56,22 @@ void cpu_stop() {
 s32 scanline_counter = 456;
 
 void cpu_interrupt(int interrupt_type) {
+    waiting_for_interrupt = false;
     switch(interrupt_type) {
         case VBLANK_INTERRUPT:
+            hardware_registers[IF] |= 0x01;
             break;
         case LCD_STAT_INTERRUPT:
+            hardware_registers[IF] |= 0x02;
             break;
         case TIMER_INTERRUPT:
+            hardware_registers[IF] |= 0x04;
             break;
         case SERIAL_INTERRUPT:
+            hardware_registers[IF] |= 0x08;
             break;
         case JOYPAD_INTERRUPT:
-            //hardware_registers[IF] |= 0x10;
-            dprintf("joypad interrupt\n");
-			hardware_registers[IF] |= 0x8;
+			hardware_registers[IF] |= 0x10;
             break;
     }
 }
@@ -132,7 +136,8 @@ void cpu_run() {
 			}
 			
 			if(lcd_interrupt && (lcd_mode != new_lcd_mode)) {
-				hardware_registers[IF] |= 2;
+				
+                cpu_interrupt(LCD_STAT_INTERRUPT);
 			}
 		}
 		
@@ -152,7 +157,7 @@ void cpu_run() {
 				
 				if(hardware_registers[LY] == 144) {
 					// enter vertical blank
-					//hardware_registers[IF] |= 0x1;
+					cpu_interrupt(VBLANK_INTERRUPT);
 		
 				} else if(hardware_registers[LY] > 153) {
 					// scanline back to 0 (vblank over)
@@ -190,7 +195,7 @@ void cpu_run() {
 				if(hardware_registers[TIMA] == 255) {
 					hardware_registers[TIMA] = hardware_registers[TMA];
 					//trigger interrupt
-					hardware_registers[IF] |= 0x4;
+					cpu_interrupt(TIMER_INTERRUPT);
 				} else {
 					++hardware_registers[TIMA];
 				}
@@ -200,7 +205,9 @@ void cpu_run() {
 		
 		//Check for vertical blank
 		if(cycles > VBLANK_CYCLES) {
-			hardware_registers[IF] |= 0x1;
+            
+            // should we trigger the interrupt here, or further up?
+            
 			cycles = 0;
 			
 			// testing
@@ -280,7 +287,12 @@ int cpu_execute() {
     s8 offset;
     
 	// load the next intruction
-	IR.W = MBC_read(PC.W++);	
+    if(waiting_for_interrupt == true) {
+        IR.W = 0x00;
+    } else {
+        IR.W = MBC_read(PC.W++);	
+    }
+	
 	
 	// execute the instruction and return cpu cycles
 	switch(IR.W) {
@@ -361,7 +373,8 @@ void initialize_cpu() {
 			}
 			
 			if(lcd_interrupt && (lcd_mode != new_lcd_mode)) {
-				hardware_registers[IF] |= 2;
+				//hardware_registers[IF] |= 2;
+                cpu_interrupt(LCD_STAT_INTERRUPT);
 			}
 			
 		}
@@ -381,7 +394,8 @@ void initialize_cpu() {
 				
 				if(hardware_registers[LY] == 144) {
 					// enter vertical blank
-					hardware_registers[IF] |= 0x1;
+					//hardware_registers[IF] |= 0x1;
+                    cpu_interrupt(VBLANK_INTERRUPT);
 					
 				} else if(hardware_registers[LY] > 153) {
 					// scanline back to 0 (vblank over)
@@ -417,7 +431,8 @@ void initialize_cpu() {
 				if(hardware_registers[TIMA] == 255) {
 					hardware_registers[TIMA] = hardware_registers[TMA];
 					//trigger interrupt
-					hardware_registers[IF] |= 0x4;
+					//hardware_registers[IF] |= 0x4;
+                    cpu_interrupt(JOYPAD_INTERRUPT);
 				} else {
 					++hardware_registers[TIMA];
 				}
@@ -427,7 +442,7 @@ void initialize_cpu() {
 		
 		//Check for vertical blank
 		if(cycles > VBLANK_CYCLES) {
-			hardware_registers[IF] |= 0x1;
+			//hardware_registers[IF] |= 0x1;
 			cycles = 0;
 			
 			// testing

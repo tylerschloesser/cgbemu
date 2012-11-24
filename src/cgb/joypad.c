@@ -38,16 +38,7 @@ u8 get_joypad_state() {
 
 
 void gb_joypad_down(int gb_key) {
-    /*
-    if(gb_key == JOYPAD_START) {
-        dprintf("start pressed\n");
-    }
-    */
-    
-    
-    
-    dprintf("joypad_state=%X\n", joypad_state);
-    
+  
     joypad_state &= ~(1 << gb_key);
     
     hardware_registers[P1] |= (get_joypad_state() & 0x0F);
@@ -57,15 +48,11 @@ void gb_joypad_down(int gb_key) {
 
 void gb_joypad_up(int gb_key) {
 
-    dprintf("joypad_state=%X\n", joypad_state);
-
     assert(gb_key < 8); 
 
     joypad_state |= (1 << gb_key);
-    
-    
+     
     hardware_registers[P1] |= (get_joypad_state() & 0x0F);
-
 }
 
 /**

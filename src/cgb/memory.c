@@ -6,30 +6,6 @@ extern bool show_opcodes;
 
 void MBC_write(u16 location, u8 data)
 {
-
-	if(location == 0xD840) {
-//		printf("Updating pallete 0? PC:%X, HL:%X, data:%X\n", PC.W, HL.W, data);
-		//display_cpu_values();
-	}
-	
-	
-
-	//#ifdef DEBUG_TIMER
-	/*
-		switch(location) {
-			case 0xFF05:
-				printf("HI");
-				break;
-			case 0xFF06:
-				printf("HI");
-				break;
-			case 0xFF07:
-				fprintf(stderr, "Timer control set to %d\n", data);
-				break;
-		}
-	//#endif
-	*/
-	
     if(location < 0x2000) {
 
         //0000-1FFF
@@ -195,11 +171,7 @@ void MBC_write(u16 location, u8 data)
 					dma_destination |= (*(++dma_registers));
 					
 					u32 dma_transfer_length = ((data & 0x7F) + 1) * 0x10;
-					
-					printf("DMA Transfer: source=%X destination=%X length:%d Byte(s)\n", dma_source, dma_destination, dma_transfer_length);
-					
-					
-					
+
 					int i;
 					for(i = 0; i < dma_transfer_length; ++i) {
 							MBC_write(dma_destination + i, MBC_read(dma_source + i));
@@ -210,7 +182,6 @@ void MBC_write(u16 location, u8 data)
 				}
 				case DMA:
 				{
-					//printf("DMA transfer!\n");
 					//DMA transfer
 					int dma_source = data << 8;
 					int i;
@@ -289,10 +260,6 @@ void MBC_write(u16 location, u8 data)
 			//TEMP
 			if(location - offset == BLCK) {
 				printf("WRITE:BIOS_DISABLED\n");
-				printf("Now booting cartridge...\n");
-				//display_startup_values();
-				//show_opcodes = true;
-				//getchar();
 			}
 
 			
@@ -363,10 +330,11 @@ u8 MBC_read(u16 location)
         u32 rom_bank = mbc_control[ROM_BANK_LOW];
         rom_bank |= mbc_control[ROM_BANK_HIGH] << 8;
 
-		if(rom_bank == 0) {
-			printf("ROM BANK is 0, should this be 1?");
-			getchar();
-		}
+        // static u32 previous_rom_bank = 0;
+        // if(previous_rom_bank != rom_bank) {
+            // previous_rom_bank = rom_bank;
+            // dprintf("Reading ROM bank %d\n", rom_bank);
+        // }
 		
         u32 rom_location = (rom_bank * 0x4000) + (location - 0x4000);
 
@@ -407,6 +375,7 @@ u8 MBC_read(u16 location)
 			display_cpu_values();
 			getchar();
 			exit(0);
+            return 0;
 		}
 		
         u8 ram_bank = mbc_control[RAM_BANK];

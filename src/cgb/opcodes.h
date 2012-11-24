@@ -31,8 +31,10 @@ case 0x07: //RLCA
 	AF.B.H = (AF.B.L & CF) ? ((AF.B.H << 1) | 1) : (AF.B.H << 1);
 	return 4;
 case 0x08: //LD (a16), SP
-	TR.W = MBC_read(PC.W++);
-	TR.W |= (MBC_read(PC.W++) << 8);
+	// TR.W = MBC_read(PC.W++);
+	// TR.W |= (MBC_read(PC.W++) << 8);
+    TR.B.L = MBC_read(PC.W++);
+    TR.B.H = MBC_read(PC.W++);
 	MBC_write(TR.W++, SP.B.L);
 	MBC_write(TR.W, SP.B.H);
 	return 20;
@@ -196,7 +198,7 @@ case 0x30: //JR NC, r8
 		PC.W++;
 		return 8;
 	} else {
-		PC.W += (signed char)MBC_read(PC.W) + 1;
+		PC.W += (s8)MBC_read(PC.W) + 1;
 		return 12;
 	}
 case 0x31: //LD SP, d16
@@ -227,7 +229,7 @@ case 0x37: //SCF
 	return 4;
 case 0x38: //JR C, r8
 	if(AF.B.L & CF) {
-		PC.W += (signed char)MBC_read(PC.W) + 1;
+		PC.W += (s8)MBC_read(PC.W) + 1;
 		return 12;
 	} else {
 		PC.W++;
@@ -422,9 +424,7 @@ case 0x75: //LD (HL), L
 	MBC_write(HL.W, HL.B.L);
 	return 8;
 case 0x76: //HALT
-	//printf("HALT (not sure how to handle this yet)\n");
-	//getchar();
-	//exit(1);
+    waiting_for_interrupt = true;
 	return 4;
 case 0x77: //LD (HL), A
 	MBC_write(HL.W, AF.B.H);
