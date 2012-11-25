@@ -19,6 +19,8 @@ void dprintf( const char* format, ... );
 extern char opcode[][16];
 extern char opcodeCB[][16];
 
+extern int executed[2][0xFF];
+
 extern bool show_opcodes;
 
 #define BIT_0 1

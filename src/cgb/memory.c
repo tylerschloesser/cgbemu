@@ -2,7 +2,71 @@
 
 #include "joypad.h"
 
+u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
+u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
+u8 pallete[0x40];
+
+
+u8 gameboy_ram[GAMEBOY_RAM_SIZE];
+u8 gameboy_vram[GAMEBOY_VRAM_SIZE];
+//vram vram_bank0, vram_bank1;
+u8 gameboy_oam[GAMEBOY_OAM_SIZE];
+
+u8 bios[BIOS_SIZE];
+
+u8 zero_page[0x7F];             //127B
+u8 interrupt_enable;
+u8 hardware_registers[0x80];    //128B
+
+
+u8 IME;							//Interrupt Master Enable Flag (used by EI, DI, RETI, <INT>)
+	
+u8 mbc_control[4];
+
+
 extern bool show_opcodes;
+
+void initialize_memory() {
+	// initialize all memory to zero
+	int i;
+	for(i = 0; i < CARTRIDGE_RAM_SIZE; ++i) {
+		cartridge_ram[i] = 0;
+	}
+	for(i = 0; i < CARTRIDGE_ROM_SIZE; ++i) {
+		cartridge_rom[i] = 0;
+	}	
+	for(i = 0; i < GAMEBOY_RAM_SIZE; ++i) {
+		gameboy_ram[i] = 0;
+	}
+	for(i = 0; i < GAMEBOY_VRAM_SIZE; ++i) {
+		gameboy_vram[i] = 0;
+	}
+	for(i = 0; i < GAMEBOY_OAM_SIZE; ++i) {
+		gameboy_oam[i] = 0;
+	}
+	for(i = 0; i < BIOS_SIZE; ++i) {
+		bios[i] = 0;
+	}
+	// get rid of all these numbers...
+	for(i = 0; i < 0x7F; ++i) {
+		zero_page[i] = 0;
+	}
+	interrupt_enable = 0;
+	for(i = 0; i < 0x80; ++i) {
+		hardware_registers[i] = 0;
+	}
+	
+	for(i = 0; i < 0x40; ++i) {
+		pallete[i] = 0;
+	}
+	for(i = 0; i < 4; ++i) {
+		mbc_control[i] = 0;
+	}
+	
+	// do special memory stuff here
+	hardware_registers[SVBK] = 1; // selected ram bank should never be 0
+	
+}
 
 void MBC_write(u16 location, u8 data)
 {
@@ -30,6 +94,7 @@ void MBC_write(u16 location, u8 data)
     } else if(location < 0x4000) {
         //3000-3FFF
         //ROM bank select MSB
+		assert(data == 0 || data == 1);
         mbc_control[ROM_BANK_HIGH] = data;
 
         #ifdef DEBUG_MEMORY
@@ -50,7 +115,7 @@ void MBC_write(u16 location, u8 data)
 		
 		//fprintf(stderr, "This is not implemented\n");
 		fprintf(stderr, "RAM/ROM select? Valid only on MBC1\n");
-		
+		display_cpu_values();
 		//getchar();
 		return;
 		
@@ -73,6 +138,11 @@ void MBC_write(u16 location, u8 data)
 	
 		//A000-BFFF
 		//Switchable Cartridge RAM
+		
+		if(mbc_control[RAM_ENABLE] == 0) {
+			printf("suppressing write to disabled ram\n");
+			return;
+		}
 		
 		u8 ram_bank = mbc_control[RAM_BANK];
 		u32 ram_location = ram_bank * 0x2000;
@@ -222,8 +292,14 @@ void MBC_write(u16 location, u8 data)
 					}
 				}	
 				case SVBK: 
-					//printf("switching ram bank: %i\n", data);
+				{
+					assert(data < 8);
+					// always select ram bank 1
+					if(data == 0) {
+						data = 1;
+					}
 					break;
+				}
 				case BCPS:
 					//printf("BCPS:%x\n", data);
 					break;
@@ -248,6 +324,7 @@ void MBC_write(u16 location, u8 data)
 					#ifdef DEBUG_MEMORY
 						printf("WRITE:BIOS_DISABLED\n");
 					#endif
+					display_cpu_values();
 					break;
 			}
 			
@@ -325,7 +402,7 @@ u8 MBC_read(u16 location)
     } else if(location < 0x8000) {
 
         //4000-7FFF
-        //ROM Bank #1 to n
+        //ROM Bank #0 to n
 
         u32 rom_bank = mbc_control[ROM_BANK_LOW];
         rom_bank |= mbc_control[ROM_BANK_HIGH] << 8;

@@ -2,6 +2,10 @@
 
 bool show_opcodes = false;
 
+//temp for debugging
+FILE *fp;
+int executed[2][0xFF];
+
 void enable_debug_console()
 {
 #ifdef _WIN32
@@ -43,8 +47,11 @@ void enable_debug_console()
 #else
 	printf("enable_debug_console() only implemented on windows\n");
 #endif
+
 	return;
 }
+
+
 
 void dprintf( const char* format, ... )
 {

@@ -5,48 +5,21 @@
 #include "../debug.h"
 //temp
 #include "cpu.h"
-enum
-{
-GAMEBOY_RAM_SIZE      = 0x8000,
-CARTRIDGE_RAM_SIZE    = 0x20000,  //128KB
-GAMEBOY_VRAM_SIZE     = 0x4000,
-CARTRIDGE_ROM_SIZE    = 0x800000, //8MB
-GAMEBOY_OAM_SIZE      = 0x20000,  //128KB
-BIOS_SIZE             = 0x900
+enum {
+	GAMEBOY_RAM_SIZE = 0x8000,
+	CARTRIDGE_RAM_SIZE = 0x20000,  //128KB
+	GAMEBOY_VRAM_SIZE = 0x4000,
+	CARTRIDGE_ROM_SIZE = 0x800000, //8MB
+	GAMEBOY_OAM_SIZE = 0x20000,  //128KB
+	BIOS_SIZE = 0x900
 };
 
-enum MBC_control
-{
+enum MBC_control {
     RAM_ENABLE,
     ROM_BANK_LOW,
     ROM_BANK_HIGH,
     RAM_BANK
 };
-
-
-//REALLY CONFUSING!! 
-typedef union
-{
-	u8 direct[GAMEBOY_VRAM_SIZE/2]; //2 banks
-	struct
-	{
-		union
-		{
-			struct
-			{
-				u8 tiles[256][16];
-				u8 padding[0x800];
-			} set1;
-			struct
-			{
-				u8 padding[0x800];
-				u8 tiles[256][16];
-			} set0;
-		} tile_set;
-		u8 tile_map0[0x400];
-		u8 tile_map1[0x400];
-	} inner;
-} vram;
 
 /*
 typedef enum MBC_type
@@ -58,8 +31,7 @@ typedef enum MBC_type
     MBC5
 };
 */
-enum hardware_register
-{
+enum hardware_register {
     P1      = 0x00, //read joypad info
     SB      = 0x01, //serial transfer data
     SC      = 0x02, //serial i/o control
@@ -136,53 +108,53 @@ enum hardware_register
 
     //bool in_bios = true;
 
-u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
-u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
+extern u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
+extern u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
 
-u8 pallete[0x40]; //8 palletes - 4 colors per pallete - 2 bytes per color
+extern u8 pallete[0x40]; //8 palletes - 4 colors per pallete - 2 bytes per color
 //64
 
-u8 gameboy_ram[GAMEBOY_RAM_SIZE];
-u8 gameboy_vram[GAMEBOY_VRAM_SIZE];
+extern u8 gameboy_ram[GAMEBOY_RAM_SIZE];
+extern u8 gameboy_vram[GAMEBOY_VRAM_SIZE];
 //vram vram_bank0, vram_bank1;
-u8 gameboy_oam[GAMEBOY_OAM_SIZE];
+extern u8 gameboy_oam[GAMEBOY_OAM_SIZE];
 
-u8 bios[BIOS_SIZE];
+extern u8 bios[BIOS_SIZE];
 
-u8 zero_page[0x7F];             //127B
-u8 interrupt_enable;
-u8 hardware_registers[0x80];    //128B
+extern u8 zero_page[0x7F];             //127B
+extern u8 interrupt_enable;
+extern u8 hardware_registers[0x80];    //128B
 
-u8 *HR; //alternate to  hardware_registers
-
-u8 IME;							//Interrupt Master Enable Flag (used by EI, DI, RETI, <INT>)
+extern u8 IME;							//Interrupt Master Enable Flag (used by EI, DI, RETI, <INT>)
 	
-u8 mbc_control[4];
+extern u8 mbc_control[4];
 
 //} MBC5;
 
 
 enum lcd_control {
-				LCD_DISPLAY_ENABLE = 0x80,
+	LCD_DISPLAY_ENABLE = 0x80,
 	WINDOW_TILE_MAP_DISPLAY_SELECT = 0x40,
-			 WINDOW_DISPLAY_ENABLE = 0x20,
-		BG_WINDOW_TILE_DATA_SELECT = 0x10,
-		BG_TILE_MAP_DISPLAY_SELECT = 0x08,
-						  OBJ_SIZE = 0x04,
-				OBJ_DISPLAY_ENABLE = 0x02,
-						BG_DISPLAY = 0x01
+	WINDOW_DISPLAY_ENABLE = 0x20,
+	BG_WINDOW_TILE_DATA_SELECT = 0x10,
+	BG_TILE_MAP_DISPLAY_SELECT = 0x08,
+	OBJ_SIZE = 0x04,
+	OBJ_DISPLAY_ENABLE = 0x02,
+	BG_DISPLAY = 0x01
 };
 
 enum bg_map_attributes {
 	BACKGROUND_PALETTE_NUMBER = 0x07,
-		TILE_VRAM_BANK_NUMBER = 0x08,
-			  HORIZONTAL_FLIP = 0x20,
-				VERTICAL_FLIP = 0x40,
-		   BG_TO_OAM_PRIORITY = 0x80
+	TILE_VRAM_BANK_NUMBER = 0x08,
+	HORIZONTAL_FLIP = 0x20,
+	VERTICAL_FLIP = 0x40,
+	BG_TO_OAM_PRIORITY = 0x80
 };
 
 
 //struct MBC MBC5;
+
+void initialize_memory();
 
 void MBC_write(u16 location, u8 data);
 u8 MBC_read(u16 location);

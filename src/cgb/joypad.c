@@ -43,7 +43,7 @@ void gb_joypad_down(int gb_key) {
     
     hardware_registers[P1] |= (get_joypad_state() & 0x0F);
     
-    cpu_interrupt(JOYPAD_INTERRUPT);
+    //cpu_interrupt(JOYPAD_INTERRUPT);
 }
 
 void gb_joypad_up(int gb_key) {

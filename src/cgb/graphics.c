@@ -12,7 +12,7 @@
 #define SCREEN_HEIGHT 144
 
 
-//SDL_Surface *surface;
+SDL_Surface *surface;
 
 u8 screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH][3];
 
@@ -213,7 +213,7 @@ int render_background(u8 lcd_control)
 		if(scanline < 0 || scanline > 143 || x_pixel < 0 || x_pixel > 159) {
 			continue;
 		}
-		
+
 		int position = (x_pixel)  + ((scanline) * 160);
 
 		u32 *pixmem32 = (u32*)surface->pixels+position;
@@ -298,23 +298,26 @@ int render_sprites_new() {
 		sprite_mode = SPRITE_MODE_8x16;
 	}
     
+	//TODO limit sprites to 10 per line (refer to pandocs)
+	
     u16 sprite_attribute_index = 0xFE00; // OAM memory location
     int sprite_count = 40;
     
     int sprite;
     for(sprite = 0; sprite < sprite_count; ++sprite) {
     
-        s8 y_position = MBC_read(sprite_attribute_index++) - 16;
-        s8 x_position = MBC_read(sprite_attribute_index++) - 8;
+        s16 y_position = MBC_read(sprite_attribute_index++) - 16;
+        s16 x_position = MBC_read(sprite_attribute_index++) - 8;
         u8 tile_number = MBC_read(sprite_attribute_index++);
         u8 tile_attributes = MBC_read(sprite_attribute_index++);
-        
-        /*
+
+		/*
         if(y_position == -16 || y_position >= 144)
             continue;
+		*/
         if(x_position == -8 || x_position >= 160)
             continue;
-        */
+        
           
         u16 vram_offset = (tile_attributes & TILE_VRAM_BANK_NUMBER) ? 0x2000 : 0;
         
@@ -325,7 +328,7 @@ int render_sprites_new() {
         
         // TODO check for vertical flip
         
-        s8 scanline = hardware_registers[LY];
+        s16 scanline = hardware_registers[LY];
         u8 sprite_height = 8;
         if(sprite_mode == SPRITE_MODE_8x16) {
             sprite_height = 16;
@@ -371,7 +374,7 @@ int render_sprites_new() {
                     // pallete_entry |= (pallete[pallete_index + 1] << 8);		
                     // white is transparant
                     continue;
-                    color = SDL_MapRGB(surface->format, 255,255,255); //temp
+                    //color = SDL_MapRGB(surface->format, 255,255,255); //temp
                 }
                 
                 // r = (pallete_entry >> 0 ) & 0x1F;
@@ -385,7 +388,7 @@ int render_sprites_new() {
                 if(scanline < 0 || scanline > 143 || x_pixel < 0 || x_pixel > 159) {
                     continue;
                 }
-
+				
                 int position = x_pixel + (scanline * 160);
 
                 u32 *pixmem32 = (u32*)surface->pixels+position;
@@ -401,6 +404,9 @@ int render_sprites()
 {
        return render_sprites_new();
 
+	   
+	   
+	   
        SDL_UpdateRect(surface, 0, 0, 0, 0); 
        return 0;
 

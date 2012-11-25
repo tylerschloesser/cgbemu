@@ -1,6 +1,7 @@
 #include "gameboy.h"
 #include "cpu.h"
 #include "joypad.h"
+#include "memory.h"
 #include "../tools.h"
 
 #include <SDL/SDL.h>
@@ -12,6 +13,33 @@ SDL_Surface *surface;
 static void key_pressed(SDLKey key);
 static void key_unpressed(SDLKey key);
 
+
+bool gameboy_verify_cartridge() {
+	
+	char title[0x10];
+	title[0x10 - 1] = '\0';
+	int i;
+	for(i = 0x134; i < 0x144; ++i) {
+		title[i - 0x134] = cartridge_rom[i];
+	}
+	printf("Title: %s\n", title);
+	printf("CartridgeType: %X\n", cartridge_rom[0x147]);
+	printf("Rom Size: %X\n", cartridge_rom[0x148]);
+	
+	// calculate checksum
+	u16 sum;
+	for(i = 0; i < CARTRIDGE_ROM_SIZE; ++i) {
+		sum += cartridge_rom[i];
+	}
+	sum -= (cartridge_rom[0x14e] + cartridge_rom[0x14f]);
+	
+	printf("Sum: %X\n", sum);
+	
+	printf("checksum: %X %X\n", cartridge_rom[0x14e], cartridge_rom[0x14f]);
+	
+	return true;
+}
+
 void gameboy_load_cartridge(char* cartridge_filepath) {
 	dprintf("Opening %s...", cartridge_filepath);
 	int bytes_read = binary_read_file(cartridge_filepath, cartridge_rom, CARTRIDGE_ROM_SIZE);
@@ -19,6 +47,9 @@ void gameboy_load_cartridge(char* cartridge_filepath) {
 		fprintf(stderr, "Failed (%s)\n", get_last_error());
 		fatal_error();
 	}
+	
+	gameboy_verify_cartridge();
+	
 	dprintf("Done (%s)\n", size_to_string(bytes_read));
 }
 
@@ -87,6 +118,17 @@ static void gameboy_screen_on() {
 }
 
 void gameboy_power_on() {
+
+	initialize_memory();
+	initialize_joypad();
+	
+	char game_filepath[] = "..\\resources\\roms\\pokemon_yellow.gbc";
+	//char game_filepath[] = "..\\resources\\roms\\pokemon_red.gbc";
+	char bios_filepath[] = "..\\resources\\bios\\gbc_bios.bin";
+	
+    gameboy_load_bios(bios_filepath);
+    gameboy_load_cartridge(game_filepath);
+     
 	
 	gameboy_screen_on();
 	
@@ -94,7 +136,7 @@ void gameboy_power_on() {
 	// we need to wait for the surface to be created right here
 	Sleep(1000);
 	
-    initialize_joypad();
+    
     
 	// start with the bios
 	PC.W = 0;
@@ -102,6 +144,28 @@ void gameboy_power_on() {
 	
 	cpu_start();
 	
+}
+
+//temp for debugging
+void cpu_debug() {
+	int i, j;
+	printf("newly executed opcodes\n");
+	int ex = 0;
+	for(i = 0; i < 0xFF; ++i) {
+		if(executed[0][i] == 1) {
+			executed[0][i] = 2;
+			printf("%s\n", opcode[i]);
+			++ex;
+		}
+	}
+	for(i = 0; i < 0xFF; ++i) {
+		if(executed[1][i] == 1) {
+			executed[1][i]= 2;
+			printf("%s\n", opcodeCB[i]);
+			++ex;
+		}
+	}
+	printf("Total: %i\n", ex);
 }
 
 static void key_pressed(SDLKey key) {
@@ -132,6 +196,9 @@ static void key_pressed(SDLKey key) {
     case SDLK_z:
         gb_key = JOYPAD_B;
         break;
+	case SDLK_d:
+		//debug
+		cpu_debug();
     }
     
     if(gb_key != -1) {

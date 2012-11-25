@@ -278,7 +278,10 @@ void cpu_run() {
 
 }
 
+
+
 int cpu_execute() {
+
 
     if(show_opcodes) {
         display_cpu_values();
@@ -293,6 +296,10 @@ int cpu_execute() {
         IR.W = MBC_read(PC.W++);	
     }
 	
+	//temp debugging
+	if(executed[0][IR.W] == 0)
+		executed[0][IR.W] = 1;
+
 	
 	// execute the instruction and return cpu cycles
 	switch(IR.W) {

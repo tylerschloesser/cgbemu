@@ -9,7 +9,7 @@ const int ERROR_FILE_NOT_READ = 3;
 bool debug_mode = true;
 
 const char error_message[][32] = {
-"NOT_AN_ERROR",
+"ERROR_NONE",
 "ERROR_FILE_NOT_FOUND",
 "ERROR_MAX_SIZE_EXCEEDED",
 "ERROR_FILE_NOT_READ"
