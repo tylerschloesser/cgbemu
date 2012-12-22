@@ -2,21 +2,18 @@
 #include "gameboy.h"
 #include "cpu.h"
 
+//testing
+#include "screen.h"
 
 #define MAX_TILES_PER_LINE 10
 
 #define SPRITE_MODE_8X8  0
 #define SPRITE_MODE_8x16 1
 
-#define SCREEN_WIDTH 160
-#define SCREEN_HEIGHT 144
-
-
 SDL_Surface *surface;
 
-u8 screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH][3];
-
 int render_background(u8 lcd_control);
+int render_background_old();
 
 int GUI(void *param)
 {
@@ -55,6 +52,7 @@ int GUI(void *param)
 
 void update_screen() 
 {
+	update_screen2();
 /*
 	int i, j;
 	//OPTIMIZE THIS CODE EASY
@@ -68,7 +66,7 @@ void update_screen()
 	}
 	*/
 
-	SDL_UpdateRect(surface, 0, 0, 0, 0); 
+	//SDL_UpdateRect(surface, 0, 0, 0, 0); 
 }
 
 int render_scanline()
@@ -159,14 +157,33 @@ int render_background(u8 lcd_control)
         u8 pallete_number = tile_attributes & BACKGROUND_PALETTE_NUMBER;
 		u8 pallete_index = pallete_number * 8;
 		
+		bool x_flip = false;
+		if(tile_attributes & HORIZONTAL_FLIP) {
+			x_flip = true;
+		}
+		bool y_flip = false;
+		if(tile_attributes & VERTICAL_FLIP) {
+			y_flip = true;
+		}
+		
 		//u8 tile_location = tile_data_offset + (tile_number *  16);
 		
-		int x_tile = tile_number % 32;
-		int y_tile = tile_number / 32;
-
-        
 		int tile_x_pixel = x_position % 8;
+		
+		//testing
+		if(x_flip == true) {
+			tile_x_pixel -= 7;
+			tile_x_pixel *= -1;
+		}
+		
 		int tile_y_pixel = y_position % 8;
+		
+		//testing NOT SURE IF THIS WORKS!!!!
+		if(y_flip == true) {
+			tile_y_pixel -= 7;
+			tile_y_pixel *= -1;
+		}
+		
 		int j = (tile_y_pixel * 8) + tile_x_pixel;
 		
 		int index;
@@ -175,17 +192,21 @@ int render_background(u8 lcd_control)
 		} else {
 			index = tile_number * 16 + (j / 8) * 2;
 		}
+		
+		/*
 		int x_bit = j % 8;
 		int y_bit = j / 8;
 
 		int x_location_temp = x_position + x_bit;
 		int y_location_temp = y_position + y_bit;
+		*/
+		
 		
 		u8 high = gameboy_vram[index + vram_offset + 1];
 		u8 low  = gameboy_vram[index + vram_offset + 0];
 		u8 bit = 0x80 >> (j % 8);
         
-		u32 color;	
+		//u32 color;	
         u16 pallete_entry;			
         u8 r, g, b;			
 			
@@ -208,16 +229,21 @@ int render_background(u8 lcd_control)
         g = (pallete_entry >> 5 ) & 0x1F;
 		b = (pallete_entry >> 10) & 0x1F;
         
-		color = SDL_MapRGB(surface->format, r*8, g*8, b*8);
+		//color = SDL_MapRGB(surface->format, r*8, g*8, b*8);
 
 		if(scanline < 0 || scanline > 143 || x_pixel < 0 || x_pixel > 159) {
 			continue;
 		}
 
-		int position = (x_pixel)  + ((scanline) * 160);
+		//int position = (x_pixel)  + ((scanline) * 160);
 
+		/*
 		u32 *pixmem32 = (u32*)surface->pixels+position;
 		*pixmem32 = color;
+		*/
+		screen_buffer[scanline][x_pixel][0] = r;
+		screen_buffer[scanline][x_pixel][1] = g;
+		screen_buffer[scanline][x_pixel][2] = b;
 
         
 		/*
@@ -311,10 +337,10 @@ int render_sprites_new() {
         u8 tile_number = MBC_read(sprite_attribute_index++);
         u8 tile_attributes = MBC_read(sprite_attribute_index++);
 
-		/*
+		u8 pallete_number = tile_attributes & 0x07;
+
         if(y_position == -16 || y_position >= 144)
             continue;
-		*/
         if(x_position == -8 || x_position >= 160)
             continue;
         
@@ -327,7 +353,7 @@ int render_sprites_new() {
         }
         
         // TODO check for vertical flip
-        
+
         s16 scanline = hardware_registers[LY];
         u8 sprite_height = 8;
         if(sprite_mode == SPRITE_MODE_8x16) {
@@ -339,6 +365,7 @@ int render_sprites_new() {
         
             s8 sprite_line = scanline - y_position;
             
+			
             u16 sprite_address = vram_offset + (tile_number * 16) + (sprite_line * 2);
             
             u8 high = gameboy_vram[vram_offset + sprite_address + 1];
@@ -357,17 +384,21 @@ int render_sprites_new() {
                 
                 u8 bit = 0x80 >> x_bit;
                 
+				//temp
+				u8 pallete_index = pallete_number * 8;
+				u16 pallete_entry;
+				
                 if((high & bit) && (low & bit)) {
-                    // pallete_entry = pallete[pallete_index + 6];
-                    // pallete_entry |= (pallete[pallete_index + 7] << 8);
+                    pallete_entry = sprite_pallete[pallete_index + 6];
+                    pallete_entry |= (sprite_pallete[pallete_index + 7] << 8);
                     color = SDL_MapRGB(surface->format, 0,0,0); //temp
                 } else if(high & bit) {
-                    // pallete_entry = pallete[pallete_index + 4];
-                    // pallete_entry |= (pallete[pallete_index + 5] << 8);
+                    pallete_entry = sprite_pallete[pallete_index + 4];
+                    pallete_entry |= (sprite_pallete[pallete_index + 5] << 8);
                     color = SDL_MapRGB(surface->format, 96,96,96); //temp
                 } else if(low & bit) {
-                    // pallete_entry = pallete[pallete_index + 2];
-                    // pallete_entry |= (pallete[pallete_index + 3] << 8);
+                    pallete_entry = sprite_pallete[pallete_index + 2];
+                    pallete_entry |= (sprite_pallete[pallete_index + 3] << 8);
                     color = SDL_MapRGB(surface->format, 192,192,192); //temp
                 } else {
                     // pallete_entry = pallete[pallete_index + 0];
@@ -377,9 +408,9 @@ int render_sprites_new() {
                     //color = SDL_MapRGB(surface->format, 255,255,255); //temp
                 }
                 
-                // r = (pallete_entry >> 0 ) & 0x1F;
-                // g = (pallete_entry >> 5 ) & 0x1F;
-                // b = (pallete_entry >> 10) & 0x1F;
+                u8 r = (pallete_entry >> 0 ) & 0x1F;
+                u8 g = (pallete_entry >> 5 ) & 0x1F;
+                u8 b = (pallete_entry >> 10) & 0x1F;
                 
                 // color = SDL_MapRGB(surface->format, r*8, g*8, b*8);
                 
@@ -390,9 +421,15 @@ int render_sprites_new() {
                 }
 				
                 int position = x_pixel + (scanline * 160);
-
+			
+				/*
                 u32 *pixmem32 = (u32*)surface->pixels+position;
                 *pixmem32 = color;
+				*/
+				
+				screen_buffer[scanline][x_pixel][0] = r;
+				screen_buffer[scanline][x_pixel][1] = g;
+				screen_buffer[scanline][x_pixel][2] = b;
                 
             }
             
@@ -733,6 +770,8 @@ int render_background_old()  //WORKS don't delete
 			
 			u32 *pixmem32 = (u32*)surface->pixels+position;
 			*pixmem32 = color;
+
+
 		}
 	}
 	//disable this because we are going to update the screen

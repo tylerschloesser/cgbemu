@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
 		executed[1][i] = 0;
 	}
 
+	
 	if(debug_mode) {
 		enable_debug_console();
 	}

@@ -57,7 +57,7 @@ typedef union
 #define ADC_BYTES(R1,R2) TR.LO=R1+R2+((REG_F&CF)>>4);REG_F=(TR.LO?0:ZF)|(((R1^R2^TR.LO)&0x10)?HF:0)|(TR.LO<R2?CF:0);R1=TR.LO
 
 #define SUB_BYTES(R1,R2) REG_F=((R1==R2)?ZF:0)|NF|(((R1&0xF)<(R2&0xF))?HF:0)|((R1<R2)?CF:0);R1-= R2
-#define SBC_BYTES(R1,R2) TR.HI=R1-((REG_F&CF)>>4);REG_F=((R1==TR.HI)?ZF:0)|NF|(((R1&0xF)<(TR.HI&0xF))?HF:0)|((R1<TR.HI)?CF:0);R1-=TR.HI
+#define SBC_BYTES(R1,R2) TR.HI=R2-((REG_F&CF)>>4);REG_F=((R1==TR.HI)?ZF:0)|NF|(((R1&0xF)<(TR.HI&0xF))?HF:0)|((R1<TR.HI)?CF:0);R1-=TR.HI
 
 #define AND_BYTE(R) REG_A&=R;REG_F=(REG_A?0:ZF)|HF
 #define XOR_BYTE(R) REG_A^=R;REG_F=(REG_A?0:ZF)

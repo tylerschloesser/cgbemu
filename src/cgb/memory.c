@@ -5,7 +5,7 @@
 u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
 u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
 u8 pallete[0x40];
-
+u8 sprite_pallete[0x40];
 
 u8 gameboy_ram[GAMEBOY_RAM_SIZE];
 u8 gameboy_vram[GAMEBOY_VRAM_SIZE];
@@ -246,6 +246,7 @@ void MBC_write(u16 location, u8 data)
 					for(i = 0; i < dma_transfer_length; ++i) {
 							MBC_write(dma_destination + i, MBC_read(dma_source + i));
 					}
+					// indicate that the DMA transfer is inactive
 					hardware_registers[HDMA5] |= 0x80;
 					return;
 					
@@ -300,17 +301,14 @@ void MBC_write(u16 location, u8 data)
 					}
 					break;
 				}
-				case BCPS:
+				//case BCPS:
 					//printf("BCPS:%x\n", data);
-					break;
+					//break;
 				case BCPD:
 				{
 				
 					//background pallete data
 					int pallete_index = hardware_registers[BCPS] & 0x3F;
-					if(pallete_index == 0) {
-						//printf("Updating pallete 0. PC:%X HL:%X data:%X\n", PC.W, HL.W, data);
-					}
 					pallete[pallete_index] = data;
 					if(hardware_registers[BCPS] & 0x80) {
 						//Auto Increment
@@ -318,6 +316,17 @@ void MBC_write(u16 location, u8 data)
 					}
 					hardware_registers[BCPS] &= 0xBF;
 					//break; 5/15/2012
+					return;
+				}
+				case OCPD:
+				{
+					// sprite pallete data
+					int pallete_index = hardware_registers[OCPS] & 0x3F;
+					sprite_pallete[pallete_index] = data;
+					if(hardware_registers[OCPS] & 0x80) {
+						++hardware_registers[OCPS];
+					}
+					hardware_registers[OCPS] &= 0xBF;
 					return;
 				}
 				case BLCK:

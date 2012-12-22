@@ -15,6 +15,10 @@
 #include <SDL/SDL_thread.h>
 #include "memory.h"
 
+#define SCREEN_WIDTH 160
+#define SCREEN_HEIGHT 144
+
+
 extern SDL_Surface *surface;
 
 int render_screen();

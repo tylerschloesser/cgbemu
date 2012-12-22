@@ -112,6 +112,7 @@ extern u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
 extern u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
 
 extern u8 pallete[0x40]; //8 palletes - 4 colors per pallete - 2 bytes per color
+extern u8 sprite_pallete[0x40];
 //64
 
 extern u8 gameboy_ram[GAMEBOY_RAM_SIZE];
