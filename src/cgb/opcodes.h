@@ -153,9 +153,112 @@ case 0x26: //LD H, d8
 	REG_H = READ(PC.W++);
 	CLOCK_CYCLES(8);
 case 0x27: //DAA
+	{
+		fprintf(stderr,"before DAA\n");
+		display_cpu_values();
+		
+		TR.W = REG_A;
+		if( REG_F & CF ) TR.W |= 0x100;
+		if( REG_F & HF ) TR.W |= 0x200;
+		if( REG_F & NF ) TR.W |= 0x400;
+		
+		AF.W = DAA_table[TR.W];
+		
+		fprintf(stderr,"after DAA\n");
+		display_cpu_values();
+		
+		
+		CLOCK_CYCLES(4);
+		/*
+		u8 upper = REG_A & 0xF0 >> 4;
+		u8 lower = REG_A & 0x0F;
+		if( REG_F & NF == 0 ) {
+			if( REG_F & CF == 0 ) {
+				if( upper <= 0x9 ) {
+					if( REG_F & HF == 0 ) {
+						if( lower <= 0x9 ) {
+							REG_A += 0x00;
+						} else if( upper <= 0x8 ) {
+							REG_A += 0x06;
+						}
+					} else { // H flag is set
+						if( lower <= 0x3 ) {
+							REG_A += 0x06;
+						}
+					}
+				} else { // upper is between 0xA and 0xF
+					if( REG_F & HF == 0 ) {
+						if( lower <= 0x9 ) {
+							REG_A += 0x60;
+							REG_F |= CF;
+						} else { // lower is between 0xA and 0xF
+							REG_A += 0x66;
+							REG_F |= CF;
+						}
+					} else { // H flag is set
+						if( lower <= 0x3 ) {
+							REG_A += 0x66;
+							REG_F |= CF;
+						}
+					}
+				}
+			} else { // C flag is set
+				if( upper <= 0x3 ) {
+					if( REG_F & HF ) {
+						if( lower <= 0x3 ) {
+							REG_A += 0x66;
+							REG_F |= CF;
+						}
+					} else { // H flag is NOT set
+						if( upper <= 0x2 ) {
+							if( lower <= 0x9 ) {
+								REG_A += 0x60;
+							} else {
+								REG_A += 0x66;
+							}
+							REG_F |= CF;
+						}
+					}
+				}
+			}
+		} else { // N flag is set
+			if( REG_F & CF == 0 ) {
+				if( upper <= 0x9 ) {
+					if( REG_F & HF == 0 ) {
+						if( lower <= 0x9 ) {
+							REG_A += 0x00;
+						}
+					} else { // H flag is set
+						if( upper <= 0x8 ) {
+							if( lower >= 0x6 ) {
+								REG_A += 0xFA;
+							}
+						}
+					}
+				}
+			} else { // C flag is set
+				if( upper >= 0x6 ) {
+					if( REG_F & HF == 0 && upper >= 0x7 ) {
+						if( lower <= 0x9 ) {
+							REG_A += 0xA0;
+							REG_F |= CF;
+						}
+					} else { // H flag is set
+						if( lower >= 0x6 ) {
+							REG_A += 0x9A;
+							REG_F |= CF;
+						}
+					}
+				}
+			}
+		}
+		*/
+	}
+	/*
 	printf("DAA\n");
 	getchar();
 	exit(1);
+	*/
 case 0x28: //JR Z, r8
 	if(REG_F & ZF) {
 		PC.W += (signed char)READ(PC.W) + 1;
@@ -486,11 +589,6 @@ case 0xCA: //JP Z, a16
 case 0xCB: //PREFIX CB
 {
 	IR.W = READ(PC.W++);
-	
-	//temp debugging'
-	if(executed[1][IR.W] == 0)
-		executed[1][IR.W] = 1;
-	
 	switch(IR.W) {
 case 0x00: RLC(REG_B); CLOCK_CYCLES(8);
 case 0x01: RLC(REG_C); CLOCK_CYCLES(8);

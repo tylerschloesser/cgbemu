@@ -2,14 +2,24 @@
 
 #include "joypad.h"
 
+#define INVALID_WRITE( location )															\
+			fprintf( stderr, "attempted to write to invalid location: %04X\n", location ); 	\
+			exit( EXIT_FAILURE )
+			
+#define INVALID_READ( location )															\
+			fprintf( stderr, "attempted to read from invalid location: %04X\n", location ); 	\
+			exit( EXIT_FAILURE )
+
+#define PALLETE_SIZE 0x40
+#define SPRITE_PALLETE_SIZE 0x40
+
 u8 cartridge_ram[CARTRIDGE_RAM_SIZE];
 u8 cartridge_rom[CARTRIDGE_ROM_SIZE];
-u8 pallete[0x40];
-u8 sprite_pallete[0x40];
+u8 pallete[PALLETE_SIZE];
+u8 sprite_pallete[SPRITE_PALLETE_SIZE];
 
 u8 gameboy_ram[GAMEBOY_RAM_SIZE];
 u8 gameboy_vram[GAMEBOY_VRAM_SIZE];
-//vram vram_bank0, vram_bank1;
 u8 gameboy_oam[GAMEBOY_OAM_SIZE];
 
 u8 bios[BIOS_SIZE];
@@ -19,15 +29,16 @@ u8 interrupt_enable;
 u8 hardware_registers[0x80];    //128B
 
 
-u8 IME;							//Interrupt Master Enable Flag (used by EI, DI, RETI, <INT>)
+u8 IME; /* interrupt master enable flag */
 	
 u8 mbc_control[4];
 
+static bool memory_initialized = false;
 
-extern bool show_opcodes;
+void initialize_memory() 
+{
+	assert( memory_initialized == false );
 
-void initialize_memory() {
-	// initialize all memory to zero
 	int i;
 	for(i = 0; i < CARTRIDGE_RAM_SIZE; ++i) {
 		cartridge_ram[i] = 0;
@@ -65,154 +76,102 @@ void initialize_memory() {
 	
 	// do special memory stuff here
 	hardware_registers[SVBK] = 1; // selected ram bank should never be 0
+	hardware_registers[BLCK] = 0; // enable bios
 	
+	memory_initialized = true;
+	
+}
+
+void reinitialize_memory()
+{
+	assert( memory_initialized == true );
+	memory_initialized = false;
+	initialize_memory();
 }
 
 void MBC_write(u16 location, u8 data)
 {
-    if(location < 0x2000) {
-
-        //0000-1FFF
-        //external RAM bank enable
-
+	assert( memory_initialized == true );
+	
+    if( location < 0x2000 ) 
+	{ 
+		/* 0000-1FFF external RAM bank enable */
         mbc_control[RAM_ENABLE] = data;
-
-        #ifdef DEBUG_MEMORY
-            printf("WRITE:RAM_ENABLE=%02X\n", data);
-        #endif
-
-    } else if(location < 0x3000) {
-        //2000-2FFF
-        //ROM bank select LSB
-
+    }
+	else if( location < 0x3000 ) 
+	{
+        /* 2000-2FFF ROM bank select LSB */
         mbc_control[ROM_BANK_LOW] = data;
-
-        #ifdef DEBUG_MEMORY
-			printf("WRITE:ROM_BANK_LOW=%02X\n", data);
-		#endif
-
-    } else if(location < 0x4000) {
-        //3000-3FFF
-        //ROM bank select MSB
-		assert(data == 0 || data == 1);
+    }
+	else if( location < 0x4000 ) 
+	{
+        /* 3000-3FFF ROM bank select MSB */
+		assert( data == 0 || data == 1 );
         mbc_control[ROM_BANK_HIGH] = data;
-
-        #ifdef DEBUG_MEMORY
-            printf("WRITE:ROM_BANK_HIGH=%02X\n", data);
-        #endif
-    } else if(location < 0x6000) {
-        //4000-5FFF
-        //external RAM bank select
-
+    }
+	else if( location < 0x6000 ) 
+	{
+        /* 4000-5FFF external RAM bank select */
         mbc_control[RAM_BANK] = data;
-
-        #ifdef DEBUG_MEMORY
-            printf("WRITE:RAM_BANK=%02X\n", data);
-        #endif
-    } else if(location < 0x8000) {
-        //6000-7FFF
-        //ram/rom select (mbc1) ?
-		
-		//fprintf(stderr, "This is not implemented\n");
-		fprintf(stderr, "RAM/ROM select? Valid only on MBC1\n");
-		display_cpu_values();
-		//getchar();
-		return;
-		
-    } else if(location < 0xA000) {
-		//8000-9FFF
-		//VRAM
-       
+    }
+	else if( location < 0x8000 ) 
+	{
+        /* 6000-7FFF RAM/ROM select (only in mbc1) */
+		fprintf( stderr, "invalid write: location=%X\tdata=%X\n", location, data );
+    }
+	else if( location < 0xA000 ) 
+	{
+		/* 8000-9FFF VRAM */
 		u16 vram_bank = hardware_registers[VBK];
+		assert( vram_bank == 0 || vram_bank == 1 );
 		
-		if(vram_bank > 1) {
-			fprintf(stderr, "READ:INVALID_VRAM_BANK=%02X\n", vram_bank);
-			return;
-		}
-		
-		u32 offset = 0x8000 - (vram_bank * 0x2000);
+		u32 offset = 0x8000 - ( vram_bank * 0x2000 );
 		u32 vram_location = location - offset;
 		gameboy_vram[vram_location] = data;
-
-	} else if(location < 0xC000) {
-	
-		//A000-BFFF
-		//Switchable Cartridge RAM
-		
-		if(mbc_control[RAM_ENABLE] == 0) {
-			printf("suppressing write to disabled ram\n");
-			return;
-		}
-		
+	}
+	else if( location < 0xC000 ) 
+	{
+		/* A000-BFFF switchable cartridge RAM */
+		if(mbc_control[RAM_ENABLE] == 0) return;		
 		u8 ram_bank = mbc_control[RAM_BANK];
 		u32 ram_location = ram_bank * 0x2000;
 		cartridge_ram[ram_location] = data;
-		
-		#ifdef DEBUG_MEMORY
-			printf("WRITE:CARTRAM%i[%04X]=%02X\n", (int)ram_bank, location, data); 
-        #endif
-
-	} else if(location < 0xD000) {
-		//C000-CFFF
-		//Internal RAM bank 0
-		
-		int offset = 0xC000;
-		int ram_location = location - offset;
+	}
+	else if( location < 0xD000 ) 
+	{
+		/* C000-CFFF internal RAM bank 0 */
+		u32 offset = 0xC000;
+		u32 ram_location = location - offset;
 		gameboy_ram[ram_location] = data;
-		
-		#ifdef DEBUG_MEMORY
-			printf("WRITE:GBRAM0[%04X]=%02X\n", location, data); 
-        #endif
-		
-	} else if(location < 0xE000) {
-		//D000-DFFF
-		//Internal RAM bank 1-7
-		
+	}
+	else if( location < 0xE000 ) 
+	{
+		/* D000-DFFF internal RAM bank 1-7 */
 		int offset = 0xD000;
 		u8 ram_bank = hardware_registers[SVBK];
-		u32 ram_location = ram_bank * 0x2000 + location - offset;
+		u32 ram_location = ( ram_bank * 0x2000 ) + location - offset;
 		gameboy_ram[ram_location] = data;
-		
-		#ifdef DEBUG_MEMORY
-			printf("WRITE:GBRAM%i[%04X]=%02X\n",(int)ram_bank, location, data); 
-        #endif
-		
-    } else if(location < 0x10000) {
-        //E000-FFFF
-        if(location < 0xFE00) {
-            //E000-FDFF
-            //echo RAM (not usable)
-
-            fprintf(stderr, "WRITE:INVALID_LOCATION=%04X\n", location);
-			getchar();
-			exit(1);
-			return;
-
-        } else if(location < 0xFEA0) {
-		
-            //FE00-FE9F
-            //oject attribute memory
-
+    } 
+	else if(location < 0x10000) /* E000-FFFF */
+	{
+        if(location < 0xFE00) 
+		{
+            /* E000-FDFF echo RAM (not usable) */
+			INVALID_WRITE( location );	
+        } 
+		else if(location < 0xFEA0) 
+		{
+			/* FE00-FE9F oject attribute memory */
             int offset = 0xFE00;
-            gameboy_oam[location - offset] = data;
-
-            #ifdef DEBUG_MEMORY
-				printf("WRITE:OAM[%02X]=%02X\n", location - offset, data);
-            #endif
-
-        } else if (location < 0xFF00) {
-		
-            //unusable memory
-			
-            fprintf(stderr, "WRITE:INVALID_LOCATION=%04X\n", location);
-			getchar();
-			return;
-
-        } else if(location < 0xFF80)  {
-
-            //FF00-FF7F
-            //hardware registers
-
+            gameboy_oam[location - offset] = data;	
+        }
+		else if (location < 0xFF00) 
+		{
+			INVALID_WRITE( location );	
+        }
+		else if(location < 0xFF80)  
+		{
+			/* FF00-FF7F hardware registers */
             int offset = 0xFF00;
 			
 			switch(location - offset) {
@@ -225,9 +184,9 @@ void MBC_write(u16 location, u8 data)
                         // ? both button and dir keys selected?
                         hardware_registers[P1] |= (data & 0x0F);
                     } else if((data & 0x10) == 0) {
-                        gb_select_direction_keys();
+                        joypad_select_direction_keys();
                     } else if((data & 0x20) == 0) {
-                        gb_select_button_keys();
+                        joypad_select_button_keys();
                     }
                     break;
                 }
@@ -262,20 +221,16 @@ void MBC_write(u16 location, u8 data)
 					return;
 				}
 				case DIV:
-					//attempting to  write to this registers will reset the value
-					//http://www.codeslinger.co.uk/pages/projects/gameboy/timers.html
-					hardware_registers[DIV] = 0;
-					return;
 				case LY:
-					//writing to this register (current scnaline) resets the value
-					hardware_registers[LY] = 0;
-					return;
+					/* writing to these registers resets their value */
+					data = 0;
+					break;
 				case TAC:
 				{
 					//update timer control
 					if((hardware_registers[TAC] & 0x3) != (data & 0x3)) {
 						//frequency has changed
-
+						u32 timer_counter = 0;
 						switch(data & 0x3) {
 							case 0x0:
 								timer_counter = 1024;
@@ -290,6 +245,9 @@ void MBC_write(u16 location, u8 data)
 								timer_counter = 256;
 								break;
 						}
+						if( timer_counter != 0 ) {
+							cpu_set_timer_countr( timer_counter );
+						}
 					}
 				}	
 				case SVBK: 
@@ -301,9 +259,6 @@ void MBC_write(u16 location, u8 data)
 					}
 					break;
 				}
-				//case BCPS:
-					//printf("BCPS:%x\n", data);
-					//break;
 				case BCPD:
 				{
 				
@@ -329,280 +284,144 @@ void MBC_write(u16 location, u8 data)
 					hardware_registers[OCPS] &= 0xBF;
 					return;
 				}
-				case BLCK:
-					#ifdef DEBUG_MEMORY
-						printf("WRITE:BIOS_DISABLED\n");
-					#endif
-					display_cpu_values();
-					break;
 			}
 			
 			hardware_registers[location - offset] = data;
-			
-			#ifdef DEBUG_MEMORY
-				printf("WRITE:HR[%04X]=%02X\n", location, data);
-            #endif
-			
-			//TEMP
-			if(location - offset == BLCK) {
-				printf("WRITE:BIOS_DISABLED\n");
-			}
-
-			
-        } else if(location < 0xFFFF) {
-            //FF80-FFFE
-            //zero page
-
+        }
+		else if(location < 0xFFFF) 
+		{
+            /* FF80-FFFE zero page */
             int offset = 0xFF80;
             zero_page[location - offset] = data;
-
-            #ifdef DEBUG_MEMORY
-				printf("WRITE:ZP[%04X]=%02X\n", location, data);
-            #endif
-
-        } else if(location == 0xFFFF) {
-            //FFFF
-            //interrupt enable
-			//bit	when 0		when 1
-			// 0	vblank OFF	vblank ON
-			// 1	LCDstat OFF LCD stat ON
-			// 2	Timer OFF	Timer ON
-			// 3	Serial OFF	Serial ON
-			// 4	Joypad OFF	Joypad ON
-
+        } 
+		else if(location == 0xFFFF) 
+		{
+            /* FFFF interrupt enable */
             interrupt_enable = data;
-
-            #ifdef DEBUG_MEMORY
-                printf("WRITE:INTERRUPT_ENABLE=%02X\n", data);
-            #endif
-        } else {
-            //not possible
+        } 
+		else 
+		{
+			/* not possible */
         }
-
-    } else {
-        fprintf(stderr, "WRITE:INVALID_LOCATION=%04X\n", location);
-		getchar();
+    } 
+	else 
+	{
+        INVALID_WRITE( location );
     }
 }
 
 u8 MBC_read(u16 location)
 {
+	assert( memory_initialized == true );
 	
-    if(location < 0x4000) {
-
-        //0000-3FFF
-        //ROM Bank #0
-		/*
-        if(hardware_registers[BLCK] != 0x11 && IME) //check for IME, temp fix, interrupt handled by rom
-        {
-		*/
-		if(hardware_registers[BLCK] != 0x11) {
-            //BIOS is still active
-            if(location < 0x100 || (location > 0x1FF && location < 0x900))
+    if( location < 0x4000 ) 
+	{
+		/* 0000-3FFF ROM bank 0 */
+		if( hardware_registers[BLCK] != 0x11 ) 
+		{
+            /* BIOS is enabled */
+            if( location < 0x100 || ( location > 0x1FF && location < 0x900 ) )
             {
                 return bios[location];
             }
 		}
-		/*
-        }
-		*/
         return cartridge_rom[location];
-
-    } else if(location < 0x8000) {
-
-        //4000-7FFF
-        //ROM Bank #0 to n
-
+    } 
+	else if(location < 0x8000) 
+	{
+		/* 4000-7FFF ROM bank 0 to n */
         u32 rom_bank = mbc_control[ROM_BANK_LOW];
         rom_bank |= mbc_control[ROM_BANK_HIGH] << 8;
-
-        // static u32 previous_rom_bank = 0;
-        // if(previous_rom_bank != rom_bank) {
-            // previous_rom_bank = rom_bank;
-            // dprintf("Reading ROM bank %d\n", rom_bank);
-        // }
-		
-        u32 rom_location = (rom_bank * 0x4000) + (location - 0x4000);
-
-		u8 data = cartridge_rom[rom_location];
-        #ifdef DEBUG_MEMORY
-			printf("READ:GBR0M%i[%04X]=%02X\n", (int)rom_bank, location, data); 
-        #endif
-
-        return data;
-
-    } else if (location < 0xA000) {
-        //VRAM 8000-9FFF
-
+        u32 rom_location = ( rom_bank * 0x4000 ) + ( location - 0x4000 );
+		return cartridge_rom[rom_location];
+    } 
+	else if (location < 0xA000) 
+	{
+        /* 8000-9FFF VRAM */
 		u8 vram_bank = hardware_registers[VBK];
-		
-		if(vram_bank > 1) {
-			fprintf(stderr, "READ:INVALID_VRAM_BANK=%02X\n", vram_bank);
-			return 0;
-		}
-		
+		//assert( vram_bank == 0 && vram_bank == 1 );
 		u32 offset = 0x8000 - (vram_bank * 0x2000);
 		u32 vram_location = location - offset;
-		u8 data = gameboy_vram[vram_location];
-		
-		#ifdef DEBUG_MEMORY
-			printf("READ:VRAM%i[%04X]=%02X\n", vram_bank, vram_location, data);
-		#endif		
-		
-		return data;
-		
-    } else if (location < 0xC000) {
-
-        //A000-BFFF
-        //Switchable Cartridge RAM
-
-		if(mbc_control[RAM_ENABLE] == 0) {
-			fprintf(stderr, "READ:DISABLED_RAM\n");
-			display_cpu_values();
-			getchar();
-			exit(0);
-            return 0;
+		return gameboy_vram[vram_location];	
+    } 
+	else if (location < 0xC000) 
+	{
+		/* A000-BFFF switchable cartridge RAM */
+		if(mbc_control[RAM_ENABLE] == 0) 
+		{
+			fprintf( stderr, "attempted to read from disabled ram\n");
+			exit( EXIT_FAILURE );
 		}
-		
         u8 ram_bank = mbc_control[RAM_BANK];
         u32 ram_location = ram_bank * 0x2000;
-		u8 data = cartridge_ram[ram_location];
-        #ifdef DEBUG_MEMORY
-			printf("READ:CARTRAM%i[%04X]=%02X\n", (int)ram_bank, location, data); 
-        #endif
-
-        return data;
-
-    } else if (location < 0xD000) {
-
-        //C000-CFFF
-        //Internal RAM bank 0
-
+		return cartridge_ram[ram_location];
+    }
+	else if (location < 0xD000) 
+	{
+		/* C000-CFFF internal RAM bank 0 */
         int offset = 0xC000;
         int ram_location = location - offset;
-		u8 data = gameboy_ram[ram_location];
-        #ifdef DEBUG_MEMORY
-			printf("READ:GBRAM0[%04X]=%02X\n", location, data); 
-        #endif
-
-        return data;
-
-    } else if (location < 0xE000) {
-
-        //D000-DFFF
-        //Internal RAM bank 1-7
-
+		return gameboy_ram[ram_location];
+    }
+	else if (location < 0xE000) 
+	{
+		/* D000-DFFF internal RAM bank 1-7 */
         int offset = 0xD000;
         u8 ram_bank = hardware_registers[SVBK];
         u32 ram_location = ram_bank * 0x2000 + location - offset;
-		u8 data = gameboy_ram[ram_location];
-        #ifdef DEBUG_MEMORY
-			printf("READ:GBRAM%i[%04X]=%02X\n",(int)ram_bank, location, data); 
-        #endif
-
-        return data;
-
-    } else if (location < 0x10000) {
-        //E000-FFFF
-        if(location < 0xFE00) {
-            //E000-FDFF
-            //Echo RAM (not usable)
-
-            fprintf(stderr, "READ:INVALID_LOCATION=%04X\n", location);
-			getchar();
-			exit(0);
-			return 0;
-
-        } else if(location < 0xFEA0) {
-
-            //FE00-FE9F
-            //object attribute memory
-
+		return gameboy_ram[ram_location];
+    } 
+	else if (location < 0x10000) /* E000-FFFF */
+	{
+        if(location < 0xFE00) 
+		{
+            /* E000-FDFF Echo RAM (maps to C000-DDFF) */
+			return MBC_read( location - 0x2000 );	
+        } 
+		else if(location < 0xFEA0) 
+		{
+            /* FE00-FE9F object attribute memory */
             int offset = 0xFE00;
-
-            #ifdef DEBUG_MEMORY
-                printf("MBC: %02x read from oam_ram at %02x\n",
-                       gameboy_oam[location - offset], location - offset);
-            #endif
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
             return gameboy_oam[location - offset];
-
-        } else if(location < 0xFF00) {
-		
-            //unusable memory
-
-            fprintf(stderr, "READ:INVALID_LOCATION=%04X\n", location);
-			return 0;
-
-        } else if(location < 0xFF80) {
-		
-            //FF00-FF7F
-            //hardware registers
-
+        } 
+		else if(location < 0xFF00) 
+		{
+			INVALID_READ( location );
+        } 
+		else if(location < 0xFF80) 
+		{
+			/* FF00-FF7F hardware registers */
             int offset = 0xFF00;
-
-			switch(location - offset) {
-				case P1:
-                {   //joypad
-					//temp. set 4LSB to 1, indicating that no buttons are pressed
-                    //dprintf("joypad: %X\n", hardware_registers[P1]);
-					//return (hardware_registers[P1] | 0xFF);
+			/* handle special cases */
+			switch(location - offset) 
+			{
+				case P1: /* joypad register */
+                {
                     u8 joypad_state = get_joypad_state();
-                    /*
-                    if((joypad_state & 0x0F) != 0x0F)
-                        dprintf("reading joypad state: %X\n", joypad_state);
-                    */
-                    //joypad_state |= (hardware_registers[P1] & 0xF0);
-                    
                     return joypad_state;
                 }
 			}
-			
-            #ifdef DEBUG_MEMORY
-                //printf("MBC: %02x read from hardware_registers %02x\n",
-                       //hardware_registers[location - offset], location - offset);
-            #endif
-
             return hardware_registers[location - offset];
-
-        } else if(location < 0xFFFF) {
-            //FF80-FFFE
-            //zero page
-
+        } 
+		else if(location < 0xFFFF) 
+		{
+            /* FF80-FFFE zero page */
             int offset = 0xFF80;
-
-            #ifdef DEBUG_MEMORY
-                printf("MBC: %02x read from zero_page %02x\n",
-                       zero_page[location - offset], location - offset);
-            #endif
-
             return zero_page[location - offset];
-
-        } else if (location == 0xFFFF) {
-            //FFFF
-            //interrupt enable
-
-            #ifdef DEBUG_MEMORY
-				printf("READ:INTERRUPT_ENABLE=%02X\n", interrupt_enable);
-            #endif
-
+        } 
+		else if (location == 0xFFFF) 
+		{
+            /* FFFF interrupt enable */
             return interrupt_enable;
-
-        } else {
-            //not possible
+        } 
+		else 
+		{
+            /* not possible */
         }
-    } else {
-        fprintf(stderr, "READ:INVALID_LOCATION=%04X\n", location);
+    } 
+	else 
+	{
+		INVALID_READ( location );
     }
 	return 0;
 }

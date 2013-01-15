@@ -12,11 +12,13 @@ enum {
     JOYPAD_START
 };
 
+void initialize_joypad();
+void reinitialize_joypad();
 
-void gb_joypad_down(int gb_key);
-void gb_joypad_up(int gb_key);
+void joypad_down(int gb_key);
+void joypad_up(int gb_key);
 
-void gb_select_button_keys();
-void gb_select_direction_keys();
+void joypad_select_button_keys();
+void joypad_select_direction_keys();
 
 u8 get_joypad_state();

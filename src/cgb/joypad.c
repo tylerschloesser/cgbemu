@@ -1,25 +1,41 @@
+#include <assert.h>
+
 #include "joypad.h"
 #include "memory.h"
 #include "cpu.h"
 
 #include "../debug.h"
 
-//bool joypad_pressed[8];
 
-u8 joypad_state;
-
+static u8 joypad_state;
 /* 1 = not pressed
  * 0 = pressed
  */
+ 
+static bool initialized = false;
 
-void initialize_joypad() {
-    // set all to not pressed
+void initialize_joypad() 
+{
+	
+	assert( initialized == false );
+	
     joypad_state = 0xFF;
     hardware_registers[P1] |= 0xF;
+	
+	initialized = true;
+}
+
+void reinitialize_joypad()
+{
+	assert( initialized == true );
+	initialized = false;
+	initialize_joypad();
 }
 
 
 u8 get_joypad_state() {
+
+	assert( initialized == true );
 
     u8 joypad_select = hardware_registers[P1] & 0x30;
     
@@ -37,8 +53,19 @@ u8 get_joypad_state() {
 }
 
 
-void gb_joypad_down(int gb_key) {
+void joypad_down(int gb_key) {
   
+	assert( initialized );
+	assert( gb_key < 8 );
+	
+	/*
+	u8 bit = 1 << gb_key;
+	if( joypad_state ^ bit == 0 ) {
+		fprintf(stderr,"alreadypressed\n");
+		return;
+	}
+	*/
+	
     joypad_state &= ~(1 << gb_key);
     
     hardware_registers[P1] |= (get_joypad_state() & 0x0F);
@@ -46,8 +73,9 @@ void gb_joypad_down(int gb_key) {
     //cpu_interrupt(JOYPAD_INTERRUPT);
 }
 
-void gb_joypad_up(int gb_key) {
+void joypad_up(int gb_key) {
 
+	assert( initialized == true );
     assert(gb_key < 8); 
 
     joypad_state |= (1 << gb_key);
@@ -58,7 +86,10 @@ void gb_joypad_up(int gb_key) {
 /**
  * Set the joypad to recognize the joypad buttons (A, B, start, select)
  */
-void gb_select_button_keys() {
+void joypad_select_button_keys() {
+
+	assert( initialized == true );
+	
     // clear last 4 bits
     //hardware_registers[P1] &= 0xF0;
     hardware_registers[P1] = ~0x20;
@@ -70,7 +101,10 @@ void gb_select_button_keys() {
 /**
  * Set the joypad to recognize the joypad direction keys (down, up, left, right)
  */
-void gb_select_direction_keys() {
+void joypad_select_direction_keys() {
+
+	assert( initialized == true );
+	
     // clear the last 4 bits
     //hardware_registers[P1] &= 0xF0;
     hardware_registers[P1] = ~0x10;

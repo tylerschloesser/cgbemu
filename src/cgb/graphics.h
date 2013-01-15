@@ -11,8 +11,8 @@
 #include <errno.h>
 
 #include "../globals.h"
-#include <SDL/SDL.h>
-#include <SDL/SDL_thread.h>
+#include <SDL.h>
+#include <SDL_thread.h>
 #include "memory.h"
 
 #define SCREEN_WIDTH 160
@@ -22,9 +22,11 @@
 extern SDL_Surface *surface;
 
 int render_screen();
-//int render_background();
-int setup_GUI();
 
+void initialize_graphics();
+void reinitialize_graphics();
 
+//temp
+u8* get_background_map(u16 vram_address, bool signed_tiles);
 
 #endif //GRAPHICS_H_INCLUDED

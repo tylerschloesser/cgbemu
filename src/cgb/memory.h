@@ -156,6 +156,7 @@ enum bg_map_attributes {
 //struct MBC MBC5;
 
 void initialize_memory();
+void reinitialize_memory();
 
 void MBC_write(u16 location, u8 data);
 u8 MBC_read(u16 location);

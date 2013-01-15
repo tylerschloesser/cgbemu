@@ -2,89 +2,53 @@
 #define CPU_H_INCLUDED
 
 #include "../globals.h"
-#include "../debug.h"
-#include "memory.h"
-#include "graphics.h"
-
-
-extern bool cgb_mode;
 
 typedef union
 {
-    u16 W; // 16 bit word
+    u16 W;
     struct
     {
-        u8 L, H; //low, high
-    } B; //byte
-} z80reg;
+        u8 L, H;
+    } B;
+} Z80Register;
 
-#define ZF 0x80
-#define NF 0x40
-#define HF 0x20
-#define CF 0x10
+typedef struct {
+	bool running;
+	bool waiting_for_interrupt;
+	
+	s32 timer_counter;
+	s32 scanline_counter;
+	
+	u32 cycles;
+	u32 mode_cycles;
+	u32 divider_counter;
+	
+	Z80Register PC;
+	Z80Register SP;
+	Z80Register BC;
+	Z80Register DE;
+	Z80Register HL;
+	Z80Register AF; 
+	Z80Register IR;
+	
+} CpuState;
 
-#define REG_B BC.B.H
-#define REG_C BC.B.L
-#define REG_D DE.B.H
-#define REG_E DE.B.L
-#define REG_H HL.B.H
-#define REG_L HL.B.L
-#define REG_A AF.B.H
-#define REG_F AF.B.L
+/* 
+ * "counter" is intentionally misspelled until the temporary
+ *  cpu state definitions are removed
+ */
+void cpu_set_timer_countr( int timer_countr );
 
-#define HI B.H
-#define LO B.L
+CpuState get_cpu_state();
+void set_cpu_state( CpuState cpu_state );
 
-#define READ(S) MBC_read(S)
-#define WRITE(D, B) MBC_write(D, B)
-#define CLOCK_CYCLES(x) return(x)
+void reinitialize_cpu();
+void initialize_cpu();
 
-#define RES(B,R) R&=~(1<<B)
-#define SET(B,R) R|=(1<<B)
-#define BIT(B,R) REG_F=(R&(1<<B)?0:ZF)|HF|(REG_F&CF)
+void cpu_emulate();
 
-#define RLC(R) R=(R<<1)|((R&0x80)>>7);REG_F=(R?0:ZF)|(R&1?CF:0)
-#define RRC(R) R=(R>>1)|((R&1)<<7);REG_F=(R?0:ZF)|(R&0x80?CF:0)
-#define RL(R) TR.LO=R;R=(R<<1)|((REG_F&CF)>>4);REG_F=(R?0:ZF)|(TR.LO&0x80?CF:0)
-#define RR(R) TR.LO=R; R=(R>>1)|((REG_F&CF)<<3);REG_F=(R?0:ZF)|(TR.LO&1?CF:0)
-
-#define SLA(R) TR.LO=R;R=(R<<1);REG_F=(R?0:ZF)|(TR.LO&0x80?CF:0)
-#define SRA(R) TR.LO=R;R=(R>>1)|(R&0x80);REG_F=(R?0:ZF)|(TR.LO&1?CF:0)
-#define SWAP(R) R=(R<<4)|(R>>4);REG_F=(R?0:ZF)
-#define SRL(R) TR.LO=R;R=(R>>1);REG_F=(R?0:ZF)|(TR.LO&1?CF:0)
-
-#define ADD_BYTES(R1,R2) TR.LO=R1+R2; REG_F=(TR.LO?0:ZF)|(((R1^R2^TR.LO)&0x10)?HF:0)|(TR.LO<R2?CF:0);R1=TR.LO
-#define ADC_BYTES(R1,R2) TR.LO=R1+R2+((REG_F&CF)>>4);REG_F=(TR.LO?0:ZF)|(((R1^R2^TR.LO)&0x10)?HF:0)|(TR.LO<R2?CF:0);R1=TR.LO
-
-#define SUB_BYTES(R1,R2) REG_F=((R1==R2)?ZF:0)|NF|(((R1&0xF)<(R2&0xF))?HF:0)|((R1<R2)?CF:0);R1-= R2
-#define SBC_BYTES(R1,R2) TR.HI=R2-((REG_F&CF)>>4);REG_F=((R1==TR.HI)?ZF:0)|NF|(((R1&0xF)<(TR.HI&0xF))?HF:0)|((R1<TR.HI)?CF:0);R1-=TR.HI
-
-#define AND_BYTE(R) REG_A&=R;REG_F=(REG_A?0:ZF)|HF
-#define XOR_BYTE(R) REG_A^=R;REG_F=(REG_A?0:ZF)
-#define OR_BYTE(R) REG_A|=R;REG_F=(REG_A?0:ZF)
-#define CP_BYTES(R1,R2) REG_F=((R1==R2)?ZF:0)|NF|(((R1&0xF)<(R2&0xF))?HF:0)|((R1<R2)?CF:0)
-
-#define LD_BYTE(R1, R2) R1 = R2
-
-#define INVALID_OPCODE(X) 	printf("Invalid opcode (%X)!\n", X);display_cpu_values();getchar();exit(1)
-
-extern z80reg PC, SP, BC, DE, HL, AF, IR, TR;
-
-extern int timer_counter;// = 1024; //clockspeed / frequency
-//this is global because the write_memory function may need to
-//modify this value
-
-void cpu_run();
 void cpu_start();
 void cpu_stop();
-int cpu_execute();
+void cpu_pause();
 
-enum {
-    VBLANK_INTERRUPT,
-    LCD_STAT_INTERRUPT,
-    TIMER_INTERRUPT,
-    SERIAL_INTERRUPT,
-    JOYPAD_INTERRUPT
-};
-
-#endif // CPU_H_INCLUDED
+#endif /* CPU_H_INCLUDED */

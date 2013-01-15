@@ -1,22 +1,34 @@
+#include <Windows.h>
+
+#include <fcntl.h>
+
 #include "debug.h"
 
-bool show_opcodes = false;
+#define DEBUG_CONSOLE_TITLE "cgbemu debug console"
 
-//temp for debugging
-FILE *fp;
-int executed[2][0xFF];
+bool debug_console_opened = false;
 
-void enable_debug_console()
+void open_debug_console()
 {
 #ifdef _WIN32
+
+	assert( debug_console_opened == false );
+
 	int hConHandle;
     intptr_t lStdHandle;
     CONSOLE_SCREEN_BUFFER_INFO coninfo;
     FILE *fp;
 
     // allocate a console for this app
-    AllocConsole();
-	SetConsoleTitle("cgbemu debug console");
+    if( AllocConsole() == 0 ) {
+		fprintf( stderr, "AllocConsole failed (%i)\n", GetLastError() );
+		return;
+	}
+	
+	DWORD process_id = GetCurrentProcessId();
+	char console_title[64];
+	sprintf( console_title, "%s - %i", (char*)&DEBUG_CONSOLE_TITLE, process_id );
+	SetConsoleTitle( console_title );
 	
     // set the screen buffer to be big enough to let us scroll text
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
@@ -44,13 +56,27 @@ void enable_debug_console()
     *stderr = *fp;
     setvbuf( stderr, NULL, _IONBF, 0 );
 
+	debug_console_opened = true;
+	
 #else
-	printf("enable_debug_console() only implemented on windows\n");
+	printf("open_debug_console() only implemented on windows\n");
 #endif
 
 	return;
 }
 
+void close_debug_console()
+{
+	assert( debug_console_opened == true );
+	
+	if( FreeConsole() == 0 ) {
+		fprintf( stderr, "FreeConsole failed (%i)\n", GetLastError() );
+		return;
+	}
+	
+	debug_console_opened = false;
+	
+}
 
 
 void dprintf( const char* format, ... )
@@ -63,7 +89,9 @@ void dprintf( const char* format, ... )
 
 void display_cpu_values() 
 {
+	/*
 	printf("PC:%04X IR:%02X AF:%04X BC:%04X DE:%04X HL:%04X SP:%04X IE:%01X  IME:%01X\n",PC.W, IR.W, AF.W, BC.W, DE.W, HL.W, SP.W, interrupt_enable, IME);
+	*/
 }
 
 char opcode[][16] = {
