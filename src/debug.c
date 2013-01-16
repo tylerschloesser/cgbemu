@@ -1,4 +1,6 @@
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 
 #include <fcntl.h>
 
@@ -67,6 +69,8 @@ void open_debug_console()
 
 void close_debug_console()
 {
+#ifdef _WIN32
+
 	assert( debug_console_opened == true );
 	
 	if( FreeConsole() == 0 ) {
@@ -76,9 +80,11 @@ void close_debug_console()
 	
 	debug_console_opened = false;
 	
+#endif
 }
 
 
+#ifdef _WIN32
 void dprintf( const char* format, ... )
 {
 	va_list args;
@@ -86,6 +92,7 @@ void dprintf( const char* format, ... )
 	vfprintf(stdout, format, args);
 	va_end(args);
 }
+#endif
 
 void display_cpu_values() 
 {

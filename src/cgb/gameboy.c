@@ -73,9 +73,16 @@ void gameboy_power_on()
 	initialize_screen();
 	initialize_graphics();
 	
+#ifdef _WIN32
 	char game_filepath[] = "resources\\roms\\pokemon_yellow.gbc";
 	//char game_filepath[] = "resources\\roms\\pokemon_red.gb";
 	char bios_filepath[] = "resources\\bios\\gbc_bios.bin";
+#else
+
+	char game_filepath[] = "resources/roms/pokemon_yellow.gbc";
+	//char game_filepath[] = "resources\\roms\\pokemon_red.gb";
+	char bios_filepath[] = "resources/bios/gbc_bios.bin";
+#endif
 	
     gameboy_load_bios(bios_filepath);
     gameboy_load_cartridge(game_filepath);

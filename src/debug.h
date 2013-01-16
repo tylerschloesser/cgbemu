@@ -17,7 +17,9 @@ void display_cpu_values() ;
 void open_debug_console();
 void close_debug_console();
 
+#ifdef _WIN32
 void dprintf( const char* format, ... );
+#endif
 
 extern char opcode[][16];
 extern char opcodeCB[][16];

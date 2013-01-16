@@ -551,7 +551,11 @@ void cpu_emulate() {
 	
 		if( emulator_state == PAUSED ) {
 			unlock_cpu();
+#ifdef _WIN32
 			Sleep( 500 );
+#else
+			sleep( 500 );
+#endif
 			lock_cpu();
 			continue;
 		}

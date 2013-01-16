@@ -1,5 +1,7 @@
 #include "gtksdl.h"
 
+#include <gdk/gdkx.h>
+
 static void gtk_sdl_class_init(GtkSdlClass *class);
 static void gtk_sdl_init(GtkSdl *sdl);
 static void gtk_sdl_realize(GtkWidget *widget);
@@ -230,8 +232,12 @@ static void gtk_sdl_surface_attach (GtkSdl *sdl)
 	puts ("attaching the surface");
 #endif
 
-	sprintf (SDL_windowhack, "SDL_WINDOWID=%ld",
-		GDK_WINDOW_HWND ( GTK_WIDGET(sdl)->window ) );
+#ifdef _WIN32
+	sprintf (SDL_windowhack, "SDL_WINDOWID=%ld", GDK_WINDOW_HWND ( GTK_WIDGET(sdl)->window ) );
+#else
+	sprintf( SDL_windowhack, "SDL_WINDOWID=%ld", GDK_WINDOW_XWINDOW( GTK_WIDGET( sdl )->window ) );
+#endif
+
 	puts (SDL_windowhack);
 	putenv (SDL_windowhack);
 

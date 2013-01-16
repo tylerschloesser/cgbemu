@@ -1,5 +1,9 @@
 #include "tools.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+
 unsigned int last_error = 0;
 
 const int ERROR_FILE_NOT_FOUND = 1;
@@ -45,7 +49,8 @@ char *size_to_string(int size)
 			unit = KB;
 		}		
 	}
-	itoa(size, size_as_string, 10);
+	//itoa(size, size_as_string, 10);
+	sprintf( size_as_string, "%i", size );
 	strncat(size_as_string, unit, 32 - strlen(size_as_string));
 	return size_as_string;
 }
@@ -74,9 +79,13 @@ void fatal_error()
 //output: The total number of bytes read	
 unsigned int binary_read_file( char* filepath, u8* dest, int max_size ) {
 	
+	/* just temporary... */
+	printf( "attempting to read: %s\n", filepath );
+
 	FILE *file = fopen(filepath, "rb");
 	if(!file) {
-		last_error = ERROR_FILE_NOT_FOUND;
+		last_error = errno;
+		printf(" Error: %i\n", last_error );
 		return 0;
 	}
 

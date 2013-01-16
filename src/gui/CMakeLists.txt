@@ -9,7 +9,9 @@ pkg_check_modules (GTK2 REQUIRED gtk+-2.0)
 include_directories (
 	${GTK2_INCLUDE_DIRS}
 	${SDL_INCLUDE_DIR}
+	${X11_INCLUDE_DIR}
 )
+
 link_directories (
 	${GTK2_LIBRARY_DIRS}
 )
@@ -27,4 +29,10 @@ set(gui_source_files
 
 add_executable(cgbemu ${gui_source_files})
 
-target_link_libraries(cgbemu ${GTK2_LIBRARIES} ${SDL_LIBRARY} cgb src)
+if(UNIX)
+	find_package (X11 REQUIRED)
+	include_directories (${X11_INCLUDE_DIR})	
+	target_link_libraries(cgbemu ${X11_LIBRARIES})
+endif(UNIX)
+
+target_link_libraries(cgbemu ${GTK2_LIBRARIES} ${SDL_LIBRARY} ${X11_LIBRARIES} cgb src)

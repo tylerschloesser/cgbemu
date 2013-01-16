@@ -10,7 +10,11 @@
 
 #include "SDL.h"
 
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <X11/Xlib.h>
+#endif
 
 #include <gdk/gdkkeysyms.h>
 
@@ -64,6 +68,9 @@ void close_all_threads()
 
 int main( int argc, char** argv )
 {
+#ifndef _WIN32
+	XInitThreads();
+#endif
 	/* this was taken from the old main...*/
 	open_debug_console();
 	

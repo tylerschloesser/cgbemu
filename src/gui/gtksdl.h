@@ -6,7 +6,9 @@
 # include <gtk/gtk.h>
 # include <gdk/gdk.h>
 # include <gtk/gtkwidget.h>
+#ifdef _WIN32
 # include <gdk/gdkwin32.h>
+#endif
 
 # include <SDL.h>
 
